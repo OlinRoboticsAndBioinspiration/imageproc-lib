@@ -390,6 +390,3 @@ static void wiiSetupPeripheral(void) {
     OpenI2C2(I2C2CONvalue, I2C2BRGvalue);
     IdleI2C2();
 }
-
-
-

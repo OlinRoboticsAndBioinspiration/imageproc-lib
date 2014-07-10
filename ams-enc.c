@@ -65,18 +65,22 @@ void encSetup(void) {
     //setup I2C port I2C1
     encoderSetupPeripheral();
 	
-	encAddr[0] = 0b10000001;		//Encoder 1 rd;wr A1, A2 = low
-	encAddr[1] = 0b10000000;
+	//encAddr[0] = 0b10000001;		//Encoder 1 rd;wr A1, A2 = low
+	//encAddr[1] = 0b10000000;
 
-	encAddr[2] = 0b10000011;		//Encoder 2 rd;wr A1 = high, A2 = low
+	/*encAddr[2] = 0b10000011;		//Encoder 2 rd;wr A1 = high, A2 = low
 	encAddr[3] = 0b10000010;
 	
 	encAddr[4] = 0b10000101;		//Encoder 3 rd;wr A1 = low, A2 = high
 	encAddr[5] = 0b10000100;
 
 	encAddr[6] = 0b10000111;		//Encoder 4 rd;wr A1, A2 = high
-	encAddr[7] = 0b10000110;
+	encAddr[7] = 0b10000110;*/
 
+    i2cStartTx(ENC_I2C_CHAN); //Setup to burst read both registers, 0xFE and 0xFF
+    i2cSendByte(ENC_I2C_CHAN, 0b10000000);
+    i2cSendByte(ENC_I2C_CHAN, 0xFE);
+    i2cEndTx(ENC_I2C_CHAN);
 }
 
 /*****************************************************************************
@@ -153,7 +157,7 @@ float encGetFloatPos(unsigned char num) {
  * Description   : Setup I2C for encoders
  * Parameters    : None
  * Return Value  : None
- *****************************************************************************/
+ ****************************************************************************
 static inline void encoderSetupPeripheral(void) { //same setup as ITG3200 for compatibility
     unsigned int I2C1CONvalue, I2C1BRGvalue;
     I2C1CONvalue = I2C1_ON & I2C1_IDLE_CON & I2C1_CLK_HLD &
@@ -166,4 +170,18 @@ static inline void encoderSetupPeripheral(void) { //same setup as ITG3200 for co
     I2C1BRGvalue = 40;
     OpenI2C1(I2C1CONvalue, I2C1BRGvalue);
     IdleI2C1();
+}
+*/
+static inline void encoderSetupPeripheral(void) { //same setup as ITG3200 for compatibility
+    unsigned int I2C2CONvalue, I2C2BRGvalue;
+    I2C2CONvalue = I2C2_ON & I2C2_IDLE_CON & I2C2_CLK_HLD &
+                   I2C2_IPMI_DIS & I2C2_7BIT_ADD & I2C2_SLW_DIS &
+                   I2C2_SM_DIS & I2C2_GCALL_DIS & I2C2_STR_DIS &
+                   I2C2_NACK & I2C2_ACK_DIS & I2C2_RCV_DIS &
+                   I2C2_STOP_DIS & I2C2_RESTART_DIS & I2C2_START_DIS;
+
+    // BRG = Fcy(1/Fscl - 1/10000000)-1, Fscl = 909KHz  
+    I2C2BRGvalue = 40; 
+    OpenI2C2(I2C2CONvalue, I2C2BRGvalue);
+    IdleI2C2();
 }
