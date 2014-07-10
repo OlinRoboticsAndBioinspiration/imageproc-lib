@@ -47,7 +47,7 @@
  
 #define LSB2ENCDEG 0.0219
 
-#define ENC_I2C_CHAN        1 //Encoder is on I2C channel 1
+#define ENC_I2C_CHAN        2 //Encoder is on I2C bus 2
  
 unsigned int encAddr[8];	
 
