@@ -51,14 +51,15 @@
  *
  */	
  
-#define NUM_ENC 2
+#define NUM_ENC 1
 
 typedef struct {
-    int POS; //Leg position struct
+	int POS; //Leg position struct
 	long oticks;
 	int calibPOS;
 	int offset;
 } ENCPOS;
+
 
 
 
@@ -76,7 +77,7 @@ typedef struct {
 * Parameters    : None
 * Return Value  : None
 *****************************************************************************/
-void encGetPos(unsigned char num);
+unsigned char *encGetPos(void);
 
 /*****************************************************************************
  * Function Name : encSumPos
@@ -84,7 +85,8 @@ void encGetPos(unsigned char num);
  * Parameters    : None
  * Return Value  : None
  *****************************************************************************/
-void encSumPos(unsigned char num);
+
+void encSumPos(void);
 
 /*****************************************************************************
  * Function Name : encGetFloatPos
@@ -92,4 +94,4 @@ void encSumPos(unsigned char num);
  * Parameters    : None
  * Return Value  : None
  *****************************************************************************/
-float encGetFloatPos(unsigned char num);
+float encGetFloatPos(ENCPOS *encPos);

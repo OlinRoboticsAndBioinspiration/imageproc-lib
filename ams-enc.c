@@ -47,12 +47,14 @@
  
 #define LSB2ENCDEG 0.0219
 
-#define ENC_I2C_CHAN        2 //Encoder is on I2C bus 2
- 
-unsigned int encAddr[8];	
+#define ENC_I2C_CHAN             2 //Encoder is on I2C bus 2
+#define HALL_ADDR_RD             0x81    
+#define HALL_ADDR_WR             0x80    // 0x40 <<1	
 
-ENCPOS encPos[NUM_ENC];
-
+static union encdata {
+	unsigned char chr_data[2];
+	float float_data[4];
+} EncData;
 /*-----------------------------------------------------------------------------
  *          Declaration of static functions
 -----------------------------------------------------------------------------*/
@@ -64,23 +66,6 @@ static inline void encoderSetupPeripheral(void);
 void encSetup(void) {
     //setup I2C port I2C1
     encoderSetupPeripheral();
-	
-	//encAddr[0] = 0b10000001;		//Encoder 1 rd;wr A1, A2 = low
-	//encAddr[1] = 0b10000000;
-
-	/*encAddr[2] = 0b10000011;		//Encoder 2 rd;wr A1 = high, A2 = low
-	encAddr[3] = 0b10000010;
-	
-	encAddr[4] = 0b10000101;		//Encoder 3 rd;wr A1 = low, A2 = high
-	encAddr[5] = 0b10000100;
-
-	encAddr[6] = 0b10000111;		//Encoder 4 rd;wr A1, A2 = high
-	encAddr[7] = 0b10000110;*/
-
-    i2cStartTx(ENC_I2C_CHAN); //Setup to burst read both registers, 0xFE and 0xFF
-    i2cSendByte(ENC_I2C_CHAN, 0b10000000);
-    i2cSendByte(ENC_I2C_CHAN, 0xFE);
-    i2cEndTx(ENC_I2C_CHAN);
 }
 
 /*****************************************************************************
@@ -89,45 +74,61 @@ void encSetup(void) {
  * Parameters    : None
  * Return Value  : None
  *****************************************************************************/
-void encGetPos(unsigned char num) {
+unsigned char* encGetPos(void) {
 
     unsigned char enc_data[2];
 
     i2cStartTx(ENC_I2C_CHAN); //Setup to burst read both registers, 0xFE and 0xFF
-    i2cSendByte(ENC_I2C_CHAN, encAddr[2*num+1]);	//Write address
+    i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_WR);	//Write address
     i2cSendByte(ENC_I2C_CHAN, 0xFE);
     i2cEndTx(ENC_I2C_CHAN);
 
     i2cStartTx(ENC_I2C_CHAN);
-    i2cSendByte(ENC_I2C_CHAN, encAddr[2*num]);		//Read address
+    i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
+    i2cReadString(1,2,enc_data,10000);
+    i2cEndTx(ENC_I2C_CHAN);
+    EncData.chr_data[0] = enc_data[1];
+    EncData.chr_data[1] = enc_data[0]+2;
+
+    return EncData.chr_data;
+}
+
+int encStorePos(void){
+	unsigned char enc_data[2];
+
+    i2cStartTx(ENC_I2C_CHAN); //Setup to burst read both registers, 0xFE and 0xFF
+    i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_WR);	//Write address
+    i2cSendByte(ENC_I2C_CHAN, 0xFE);
+    i2cEndTx(ENC_I2C_CHAN);
+
+    i2cStartTx(ENC_I2C_CHAN);
+    i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
     i2cReadString(1,2,enc_data,10000);
     i2cEndTx(ENC_I2C_CHAN);
 
-    encPos[num].POS = ((enc_data[1] << 6)+(enc_data[0] & 0x3F)); //concatenate registers
+    return ((enc_data[1]<<6)+(enc_data[0] & 0x3F));
 }
-
 /*****************************************************************************
  * Function Name : encSumPos
  * Description   : Count encoder[num] rollovers, write to struct encPos
  * Parameters    : None
  * Return Value  : None
  *****************************************************************************/
-void encSumPos(unsigned char num) {
+/*void encSumPos(void) {
 
-	int prev = encPos[num].POS;
+	int prev = EncData.chr_data;
 	int update;
-	encGetPos(num);
-	update = encPos[num].POS;
+	encGetPos();
+	update = encPos[0].POS;
 	
 	if( (update-prev) > 8192 ){		    	//Subtract one Rev count if diff > 180
-		encPos[num].oticks--;
+		encPos[0].oticks--;
 	}
-	
 		if( (prev-update) > 8192 ){			//Add one Rev count if -diff > 180
-		encPos[num].oticks++;
+		encPos[0].oticks++;
 	}
 		
-}
+}*/
 
 /*****************************************************************************
  * Function Name : encGetFloatPos
@@ -135,16 +136,15 @@ void encSumPos(unsigned char num) {
  * Parameters    : None
  * Return Value  : None
  *****************************************************************************/
-float encGetFloatPos(unsigned char num) {
+float encGetFloatPos(ENCPOS *encPos) {
 
     float pos;
-    encGetPos(num);
-	
-    pos = encPos[num].POS* LSB2ENCDEG; //calculate Float
+    int position;
+    position=encStorePos();
+    pos = position*LSB2ENCDEG; //calculate Float
 
     return pos;
 }
-
 /*-----------------------------------------------------------------------------
  * ----------------------------------------------------------------------------
  * The functions below are intended for internal use, i.e., private methods.
@@ -154,24 +154,10 @@ float encGetFloatPos(unsigned char num) {
 
 /*****************************************************************************
  * Function Name : encoderSetupPeripheral
- * Description   : Setup I2C for encoders
+ * Description   : Setup I2C for encoders (Uses I2C 2 bus)
  * Parameters    : None
  * Return Value  : None
- ****************************************************************************
-static inline void encoderSetupPeripheral(void) { //same setup as ITG3200 for compatibility
-    unsigned int I2C1CONvalue, I2C1BRGvalue;
-    I2C1CONvalue = I2C1_ON & I2C1_IDLE_CON & I2C1_CLK_HLD &
-            I2C1_IPMI_DIS & I2C1_7BIT_ADD & I2C1_SLW_DIS &
-            I2C1_SM_DIS & I2C1_GCALL_DIS & I2C1_STR_DIS &
-            I2C1_NACK & I2C1_ACK_DIS & I2C1_RCV_DIS &
-            I2C1_STOP_DIS & I2C1_RESTART_DIS & I2C1_START_DIS;
-
-    // BRG = Fcy(1/Fscl - 1/10000000)-1, Fscl = 909KHz 	
-    I2C1BRGvalue = 40;
-    OpenI2C1(I2C1CONvalue, I2C1BRGvalue);
-    IdleI2C1();
-}
-*/
+ ****************************************************************************/
 static inline void encoderSetupPeripheral(void) { //same setup as ITG3200 for compatibility
     unsigned int I2C2CONvalue, I2C2BRGvalue;
     I2C2CONvalue = I2C2_ON & I2C2_IDLE_CON & I2C2_CLK_HLD &
