@@ -88,7 +88,7 @@ unsigned char* encGetPos(void) {
 
     i2cStartTx(ENC_I2C_CHAN);
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
-    i2cReadString(1,2,enc_data,1000);
+    i2cReadString(ENC_I2C_CHAN,2,enc_data,1000);
     i2cEndTx(ENC_I2C_CHAN);
     EncData.chr_data[0] = enc_data[1];
     EncData.chr_data[1] = enc_data[0]; //+2 needed or not?
@@ -108,7 +108,7 @@ unsigned char * Getaddr(void){
 
     i2cStartTx(ENC_I2C_CHAN);
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
-    i2cReadString(1,1,enc_data,1000);
+    i2cReadString(ENC_I2C_CHAN,1,enc_data,1000);
     i2cEndTx(ENC_I2C_CHAN);
 
     EncData.addr_data[0]= enc_data[0];
@@ -133,7 +133,7 @@ void encStorePos(void){
 
     i2cStartTx(ENC_I2C_CHAN);
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
-    i2cReadString(1,2,enc_data,10000);
+    i2cReadString(ENC_I2C_CHAN,2,enc_data,10000);
     i2cEndTx(ENC_I2C_CHAN);
     EncData.int_data[0] = ((enc_data[1]<<6)+(enc_data[0] & 0x3F));
 }
