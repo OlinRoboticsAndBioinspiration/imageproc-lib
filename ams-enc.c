@@ -36,7 +36,7 @@
  * Revisions:
  *  Duncan Haldane      2012-05-15    Initial release
  *  Andrew Pullin       2012-07-05    Ported to use i2c_driver module
- *                      
+ *                  
  * Notes:
  *  - This module uses the I2C1 port for communicating with the AMS encoder chips
  */
@@ -53,7 +53,10 @@
 
 static union encdata {
 	unsigned char chr_data[2];
-	float float_data[4];
+	int int_data[1];
+	float float_data[1]; //not yet implemented
+	unsigned char addr_data[1];
+	long oticks;
 } EncData;
 /*-----------------------------------------------------------------------------
  *          Declaration of static functions
@@ -85,15 +88,42 @@ unsigned char* encGetPos(void) {
 
     i2cStartTx(ENC_I2C_CHAN);
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
-    i2cReadString(1,2,enc_data,10000);
+    i2cReadString(1,2,enc_data,1000);
     i2cEndTx(ENC_I2C_CHAN);
     EncData.chr_data[0] = enc_data[1];
-    EncData.chr_data[1] = enc_data[0]+2;
+    EncData.chr_data[1] = enc_data[0]; //+2 needed or not?
 
     return EncData.chr_data;
 }
 
-int encStorePos(void){
+//Script for testing Slave Address of AS5048B I2C. Should give you 0
+unsigned char * Getaddr(void){
+
+	unsigned char enc_data[1];
+
+	i2cStartTx(ENC_I2C_CHAN);
+    i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_WR);	//Write address
+    i2cSendByte(ENC_I2C_CHAN, 0x15);
+    i2cEndTx(ENC_I2C_CHAN);
+
+    i2cStartTx(ENC_I2C_CHAN);
+    i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
+    i2cReadString(1,1,enc_data,1000);
+    i2cEndTx(ENC_I2C_CHAN);
+
+    EncData.addr_data[0]= enc_data[0];
+
+    return EncData.addr_data;
+
+}
+/*****************************************************************************
+ * Function Name : encStorePos
+ * Description   : put integer angular position value to union
+ * Parameters    : None
+ * Return Value  : None
+ *****************************************************************************/
+
+void encStorePos(void){
 	unsigned char enc_data[2];
 
     i2cStartTx(ENC_I2C_CHAN); //Setup to burst read both registers, 0xFE and 0xFF
@@ -105,8 +135,7 @@ int encStorePos(void){
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
     i2cReadString(1,2,enc_data,10000);
     i2cEndTx(ENC_I2C_CHAN);
-
-    return ((enc_data[1]<<6)+(enc_data[0] & 0x3F));
+    EncData.int_data[0] = ((enc_data[1]<<6)+(enc_data[0] & 0x3F));
 }
 /*****************************************************************************
  * Function Name : encSumPos
@@ -114,34 +143,32 @@ int encStorePos(void){
  * Parameters    : None
  * Return Value  : None
  *****************************************************************************/
-/*void encSumPos(void) {
+void encSumPos(void) {
 
-	int prev = EncData.chr_data;
+	int prev = EncData.int_data[0];
 	int update;
-	encGetPos();
-	update = encPos[0].POS;
+	encStorePos();
+	update = EncData.int_data[0];
 	
 	if( (update-prev) > 8192 ){		    	//Subtract one Rev count if diff > 180
-		encPos[0].oticks--;
+		EncData.oticks--;
 	}
 		if( (prev-update) > 8192 ){			//Add one Rev count if -diff > 180
-		encPos[0].oticks++;
+		EncData.oticks++;
 	}
 		
-}*/
-
+}
 /*****************************************************************************
  * Function Name : encGetFloatPos
  * Description   : Read the angular position of encoder[num] return as float
  * Parameters    : None
  * Return Value  : None
  *****************************************************************************/
-float encGetFloatPos(ENCPOS *encPos) {
+float encGetFloatPos(void) {
 
     float pos;
-    int position;
-    position=encStorePos();
-    pos = position*LSB2ENCDEG; //calculate Float
+    encStorePos();
+    pos = EncData.int_data[0]*LSB2ENCDEG; //calculate Float
 
     return pos;
 }

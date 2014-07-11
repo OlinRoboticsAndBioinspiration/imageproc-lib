@@ -51,7 +51,7 @@
  *
  */	
  
-#define NUM_ENC 1
+//#define NUM_ENC 1
 
 typedef struct {
 	int POS; //Leg position struct
@@ -59,9 +59,6 @@ typedef struct {
 	int calibPOS;
 	int offset;
 } ENCPOS;
-
-
-
 
  /*****************************************************************************
 * Function Name : encSetup
@@ -75,7 +72,7 @@ typedef struct {
 * Function Name : encGetPos
 * Description   : Read the angular position of the right encoder, write to struct encPos
 * Parameters    : None
-* Return Value  : None
+* Return Value  : pointer to the array
 *****************************************************************************/
 unsigned char *encGetPos(void);
 
@@ -85,13 +82,28 @@ unsigned char *encGetPos(void);
  * Parameters    : None
  * Return Value  : None
  *****************************************************************************/
-
-void encSumPos(void);
+//void encSumPos(void);
 
 /*****************************************************************************
  * Function Name : encGetFloatPos
  * Description   : Read the angular position of encoder[num] return as float
  * Parameters    : None
+ * Return Value  : Float
+ *****************************************************************************/
+float encGetFloatPos(void);
+
+/*****************************************************************************
+ * Function Name : Gedaddr
+ * Description   : Get a I2C slave address from register (0x15)
+ * Parameters    : None
+ * Return Value  : Pointer to the array
+ *****************************************************************************/
+unsigned char * Getaddr(void);
+
+/*****************************************************************************
+ * Function Name : encStorePos
+ * Description   : Get an int of angular position
+ * Parameters    : None
  * Return Value  : None
  *****************************************************************************/
-float encGetFloatPos(ENCPOS *encPos);
+void encStorePos(void);
