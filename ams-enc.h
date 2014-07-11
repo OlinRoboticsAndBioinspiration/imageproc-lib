@@ -107,3 +107,5 @@ unsigned char * Getaddr(void);
  * Return Value  : None
  *****************************************************************************/
 void encStorePos(void);
+
+unsigned char * Getzero(void);

@@ -52,6 +52,7 @@
 #define HALL_ADDR_WR             0x80    // 0x40 <<1	
 
 static union encdata {
+	unsigned char zero_data[2]
 	unsigned char chr_data[2];
 	int int_data[1];
 	float float_data[1]; //not yet implemented
@@ -112,6 +113,27 @@ unsigned char * Getaddr(void){
     i2cEndTx(ENC_I2C_CHAN);
 
     EncData.addr_data[0]= enc_data[0];
+
+    return EncData.addr_data;
+
+}
+
+unsigned char * Getzero(void){
+
+	unsigned char zero_data[2];
+
+	i2cStartTx(ENC_I2C_CHAN);
+    i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_WR);	//Write address
+    i2cSendByte(ENC_I2C_CHAN, 0x16);
+    i2cEndTx(ENC_I2C_CHAN);
+
+    i2cStartTx(ENC_I2C_CHAN);
+    i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
+    i2cReadString(ENC_I2C_CHAN,1,zero_data,1000);
+    i2cEndTx(ENC_I2C_CHAN);
+
+    EncData.zero_data[0]= zero_data[1];
+    EncData.zero_data[1]= zero_data[0];
 
     return EncData.addr_data;
 
