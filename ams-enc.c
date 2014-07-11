@@ -52,7 +52,7 @@
 #define HALL_ADDR_WR             0x80    // 0x40 <<1	
 
 static union encdata {
-	unsigned char zero_data[2]
+	unsigned char zero_data[2];
 	unsigned char chr_data[2];
 	int int_data[1];
 	float float_data[1]; //not yet implemented
