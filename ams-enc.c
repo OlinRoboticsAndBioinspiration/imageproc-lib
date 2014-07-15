@@ -89,7 +89,7 @@ unsigned char* encGetPos(void) {
 
     i2cStartTx(ENC_I2C_CHAN);
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
-    i2cReadString(ENC_I2C_CHAN,2,enc_data,100);
+    i2cReadString(ENC_I2C_CHAN,2,enc_data,50);
     i2cEndTx(ENC_I2C_CHAN);
     EncData.chr_data[0] = enc_data[1];
     EncData.chr_data[1] = enc_data[0]; //+2 needed or not?
