@@ -50,15 +50,21 @@
 #define ENC_I2C_CHAN             2 //Encoder is on I2C bus 2
 #define HALL_ADDR_RD             0x81    
 #define HALL_ADDR_WR             0x80    // 0x40 <<1	
-
+#define DATA_WAIT                30 //in ms 0.005
 static union encdata {
-	unsigned char zero_data[2];
-	unsigned char chr_data[2];
-	int int_data[1];
-	float float_data[1]; //not yet implemented
-	unsigned char addr_data[1];
-	long oticks;
+    unsigned char chr_data[2];
+    int int_data[1];
+    //float float_data[1];
 } EncData;
+
+static union {
+    unsigned char zero_data[2]; //To check if the zero position is working
+    float float_data[1]; //not yet implemented
+    unsigned char addr_data[1];//Just to make sure the chip-PIC communication is working
+    long oticks;
+}EncOpData;
+	
+
 /*-----------------------------------------------------------------------------
  *          Declaration of static functions
 -----------------------------------------------------------------------------*/
@@ -89,7 +95,7 @@ unsigned char* encGetPos(void) {
 
     i2cStartTx(ENC_I2C_CHAN);
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
-    i2cReadString(ENC_I2C_CHAN,2,enc_data,40);
+    i2cReadString(ENC_I2C_CHAN,2,enc_data,DATA_WAIT);
     i2cEndTx(ENC_I2C_CHAN);
     EncData.chr_data[0] = enc_data[1];
     EncData.chr_data[1] = enc_data[0]; //+2 needed or not?
@@ -97,6 +103,32 @@ unsigned char* encGetPos(void) {
     return EncData.chr_data;
 }
 
+unsigned char* HallGetCalibParam(void) {
+    return EncData.chr_data;
+}
+
+void HallRunCalib(unsigned int count){
+
+    unsigned int i;
+    long angle;
+
+    //CRITICAL_SECTION_START
+            
+    // throw away first 200 data. Sometimes they are bad at the beginning.
+    for (i = 0; i < 300; ++i) {
+        encGetPos();
+        delay_us(100);
+    }
+
+    for (i = 0; i < count; i++) {
+        encGetPos();
+        angle += (EncData.chr_data[1]<<6)+(EncData.chr_data[0]&0x3F);
+        delay_ms(1); // Sample at around 1kHz
+    }
+
+    //CRITICAL_SECTION_END
+    EncData.int_data[0] = angle; //*LSB2ENCDEG;
+}
 
 //Script for testing Slave Address of AS5048B I2C. Should give you 0
 unsigned char * Getaddr(void){
@@ -113,9 +145,9 @@ unsigned char * Getaddr(void){
     i2cReadString(ENC_I2C_CHAN,1,enc_data,500);
     i2cEndTx(ENC_I2C_CHAN);
 
-    EncData.addr_data[0]= enc_data[0];
+    EncOpData.addr_data[0]= enc_data[0];
 
-    return EncData.addr_data;
+    return EncOpData.addr_data;
 
 }
 
@@ -133,10 +165,10 @@ unsigned char * Getzero(void){
     i2cReadString(ENC_I2C_CHAN,1,zero_data,1000);
     i2cEndTx(ENC_I2C_CHAN);
 
-    EncData.zero_data[0]= zero_data[1];
-    EncData.zero_data[1]= zero_data[0];
+    EncOpData.zero_data[0]= zero_data[1];
+    EncOpData.zero_data[1]= zero_data[0];
 
-    return EncData.addr_data;
+    return EncOpData.zero_data;
 
 }
 /*****************************************************************************
@@ -174,10 +206,10 @@ void encSumPos(void) {
 	update = EncData.int_data[0];
 	
 	if( (update-prev) > 8192 ){		    	//Subtract one Rev count if diff > 180
-		EncData.oticks--;
+		EncOpData.oticks--;
 	}
 		if( (prev-update) > 8192 ){			//Add one Rev count if -diff > 180
-		EncData.oticks++;
+		EncOpData.oticks++;
 	}
 		
 }

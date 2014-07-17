@@ -53,12 +53,12 @@
  
 //#define NUM_ENC 1
 
-typedef struct {
-	int POS; //Leg position struct
-	long oticks;
-	int calibPOS;
-	int offset;
-} ENCPOS;
+// typedef struct {
+// 	int POS; //Leg position struct
+// 	long oticks;
+// 	int calibPOS;
+// 	int offset;
+// } ENCPOS;
 
  /*****************************************************************************
 * Function Name : encSetup
@@ -68,6 +68,9 @@ typedef struct {
 *****************************************************************************/
  void encSetup(void);
  
+
+unsigned char* HallGetCalibParam(void);
+ void HallRunCalib(unsigned int count);
  /*****************************************************************************
 * Function Name : encGetPos
 * Description   : Read the angular position of the right encoder, write to struct encPos
