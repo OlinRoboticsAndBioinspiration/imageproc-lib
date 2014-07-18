@@ -68,9 +68,9 @@
 *****************************************************************************/
  void encSetup(void);
  
-
+void HallDumpData(unsigned char* buffer);
 unsigned char* HallGetCalibParam(void);
- void HallRunCalib(unsigned int count);
+void HallRunCalib(unsigned int count);
  /*****************************************************************************
 * Function Name : encGetPos
 * Description   : Read the angular position of the right encoder, write to struct encPos

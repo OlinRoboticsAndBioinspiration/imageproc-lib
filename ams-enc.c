@@ -50,7 +50,7 @@
 #define ENC_I2C_CHAN             2 //Encoder is on I2C bus 2
 #define HALL_ADDR_RD             0x81    
 #define HALL_ADDR_WR             0x80    // 0x40 <<1	
-#define DATA_WAIT                30 //in ms 0.005
+#define DATA_WAIT                50 //in ms 0.005
 static union encdata {
     unsigned char chr_data[2];
     int int_data[1];
@@ -107,6 +107,12 @@ unsigned char* HallGetCalibParam(void) {
     return EncData.chr_data;
 }
 
+void HallDumpData(unsigned char* buffer) {
+
+    memcpy(buffer, EncData.chr_data, 2);    
+    
+}
+
 void HallRunCalib(unsigned int count){
 
     unsigned int i;
@@ -115,7 +121,7 @@ void HallRunCalib(unsigned int count){
     //CRITICAL_SECTION_START
             
     // throw away first 200 data. Sometimes they are bad at the beginning.
-    for (i = 0; i < 300; ++i) {
+    for (i = 0; i < 200; ++i) {
         encGetPos();
         delay_us(100);
     }
