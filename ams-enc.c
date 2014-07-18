@@ -44,6 +44,7 @@
 #include "i2c.h"
 #include "ams-enc.h"
 #include "utils.h"
+#include "string.h"
  
 #define LSB2ENCDEG 0.0219
 
@@ -51,18 +52,17 @@
 #define HALL_ADDR_RD             0x81    
 #define HALL_ADDR_WR             0x80    // 0x40 <<1	
 #define DATA_WAIT                50 //in ms 0.005
+
 static union encdata {
     unsigned char chr_data[2];
     int int_data[1];
     //float float_data[1];
 } EncData;
 
-static union {
-    unsigned char zero_data[2]; //To check if the zero position is working
-    float float_data[1]; //not yet implemented
-    unsigned char addr_data[1];//Just to make sure the chip-PIC communication is working
-    long oticks;
-}EncOpData;
+static union encparamdata {
+    unsigned char chr_data[4];
+    float float_data[1];
+}EncParamData;
 	
 
 /*-----------------------------------------------------------------------------
@@ -103,20 +103,15 @@ unsigned char* encGetPos(void) {
     return EncData.chr_data;
 }
 
-unsigned char* HallGetCalibParam(void) {
-    return EncData.chr_data;
+unsigned char* HallGetSpeed(void) {
+    return EncParamData.chr_data;
 }
 
-void HallDumpData(unsigned char* buffer) {
-
-    memcpy(buffer, EncData.chr_data, 2);    
-    
-}
-
-void HallRunCalib(unsigned int count){
+void HallSpeedCalib(unsigned int count){
 
     unsigned int i;
-    long angle;
+    int prev, update;
+    float rps;
 
     //CRITICAL_SECTION_START
             
@@ -127,16 +122,18 @@ void HallRunCalib(unsigned int count){
     }
 
     for (i = 0; i < count; i++) {
+        prev = (EncData.chr_data[1]<<6)+(EncData.chr_data[0]&0x3F);
         encGetPos();
-        angle += (EncData.chr_data[1]<<6)+(EncData.chr_data[0]&0x3F);
-        delay_ms(1); // Sample at around 1kHz
+        delay_ms(2);
+        update = (EncData.chr_data[1]<<6)+(EncData.chr_data[0]&0x3F);
+        rps= (update-prev)/(16384*0.002); //(delta(angle)/2^14)/sec 
+        EncParamData.float_data[0] = rps;
+         // Sample at around 500Hz
     }
-
-    //CRITICAL_SECTION_END
-    EncData.int_data[0] = angle; //*LSB2ENCDEG;
 }
 
 //Script for testing Slave Address of AS5048B I2C. Should give you 0
+/*
 unsigned char * Getaddr(void){
 
 	unsigned char enc_data[1];
@@ -151,33 +148,11 @@ unsigned char * Getaddr(void){
     i2cReadString(ENC_I2C_CHAN,1,enc_data,500);
     i2cEndTx(ENC_I2C_CHAN);
 
-    EncOpData.addr_data[0]= enc_data[0];
-
-    return EncOpData.addr_data;
+    return enc_data;
 
 }
-
-unsigned char * Getzero(void){
-
-	unsigned char zero_data[2];
-
-	i2cStartTx(ENC_I2C_CHAN);
-    i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_WR);	//Write address
-    i2cSendByte(ENC_I2C_CHAN, 0x16);
-    i2cEndTx(ENC_I2C_CHAN);
-
-    i2cStartTx(ENC_I2C_CHAN);
-    i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
-    i2cReadString(ENC_I2C_CHAN,1,zero_data,1000);
-    i2cEndTx(ENC_I2C_CHAN);
-
-    EncOpData.zero_data[0]= zero_data[1];
-    EncOpData.zero_data[1]= zero_data[0];
-
-    return EncOpData.zero_data;
-
-}
-/*****************************************************************************
+*/
+/**************************************************************
  * Function Name : encStorePos
  * Description   : put integer angular position value to union
  * Parameters    : None
@@ -198,28 +173,7 @@ void encStorePos(void){
     i2cEndTx(ENC_I2C_CHAN);
     EncData.int_data[0] = ((enc_data[1]<<6)+(enc_data[0] & 0x3F));
 }
-/*****************************************************************************
- * Function Name : encSumPos
- * Description   : Count encoder[num] rollovers, write to struct encPos
- * Parameters    : None
- * Return Value  : None
- *****************************************************************************/
-void encSumPos(void) {
-
-	int prev = EncData.int_data[0];
-	int update;
-	encStorePos();
-	update = EncData.int_data[0];
-	
-	if( (update-prev) > 8192 ){		    	//Subtract one Rev count if diff > 180
-		EncOpData.oticks--;
-	}
-		if( (prev-update) > 8192 ){			//Add one Rev count if -diff > 180
-		EncOpData.oticks++;
-	}
-		
-}
-/*****************************************************************************
+/***********************************************************************
  * Function Name : encGetFloatPos
  * Description   : Read the angular position of encoder[num] return as float
  * Parameters    : None

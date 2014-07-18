@@ -66,11 +66,10 @@
 * Parameters    : None
 * Return Value  : None
 *****************************************************************************/
- void encSetup(void);
- 
-void HallDumpData(unsigned char* buffer);
-unsigned char* HallGetCalibParam(void);
-void HallRunCalib(unsigned int count);
+void encSetup(void);
+
+unsigned char* HallGetSpeed(void);
+void HallSpeedCalib(unsigned int count);
  /*****************************************************************************
 * Function Name : encGetPos
 * Description   : Read the angular position of the right encoder, write to struct encPos
@@ -110,5 +109,3 @@ unsigned char * Getaddr(void);
  * Return Value  : None
  *****************************************************************************/
 void encStorePos(void);
-
-unsigned char * Getzero(void);
