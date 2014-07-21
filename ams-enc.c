@@ -124,10 +124,10 @@ void HallSpeedCalib(unsigned int count){
     for (i = 0; i < count; i++) {
         prev = (EncData.chr_data[1]<<6)+(EncData.chr_data[0]&0x3F);
         encGetPos();
-        delay_ms(2);
         update = (EncData.chr_data[1]<<6)+(EncData.chr_data[0]&0x3F);
         rps= (update-prev)/(16384*0.002); //(delta(angle)/2^14)/sec 
         EncSpeedData.float_data[0] = rps;
+        delay_ms(2);
          // Sample at around 500Hz
     }
 }
