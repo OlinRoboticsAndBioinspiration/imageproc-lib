@@ -116,16 +116,16 @@ void HallSpeedCalib(unsigned int count){
     CRITICAL_SECTION_START
             
     // throw away first 400 data. Sometimes they are bad at the beginning.
-    for (i = 0; i < 400; ++i) {
+    for (i = 0; i < 100; ++i) {
         encGetPos();
-        delay_us(100);
+        delay_ms(2);
     }
 
     for (i = 0; i < count; i++) {
         prev = (EncData.chr_data[0]<<6)+(EncData.chr_data[1]&0x3F);
         encGetPos();
         update = (EncData.chr_data[0]<<6)+(EncData.chr_data[1]&0x3F);
-        rps= (update-prev)/(16384*0.002); //(delta(angle)/2^14)/sec 
+        rps= (update-prev)/(16384*0.002); //(input:output gear = 1:5, 2^14(max angle pos) = 16384, 1/0.002(sec) = 500Hz)
         EncSpeedData.float_data[0] = rps;
         delay_ms(2);
          // Sample at around 500Hz
