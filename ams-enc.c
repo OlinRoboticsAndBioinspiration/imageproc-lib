@@ -59,10 +59,10 @@ static union encdata {
     //float float_data[1];
 } EncData;
 
-static union encparamdata {
+static union encspeeddata {
     unsigned char chr_data[4];
     float float_data[1];
-}EncParamData;
+}EncSpeedData;
 	
 
 /*-----------------------------------------------------------------------------
@@ -104,7 +104,7 @@ unsigned char* encGetPos(void) {
 }
 
 unsigned char* HallGetSpeed(void) {
-    return EncParamData.chr_data;
+    return EncSpeedData.chr_data;
 }
 
 void HallSpeedCalib(unsigned int count){
@@ -127,7 +127,7 @@ void HallSpeedCalib(unsigned int count){
         delay_ms(2);
         update = (EncData.chr_data[1]<<6)+(EncData.chr_data[0]&0x3F);
         rps= (update-prev)/(16384*0.002); //(delta(angle)/2^14)/sec 
-        EncParamData.float_data[0] = rps;
+        EncSpeedData.float_data[0] = rps;
          // Sample at around 500Hz
     }
 }
