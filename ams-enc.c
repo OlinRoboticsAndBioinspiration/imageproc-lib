@@ -112,24 +112,39 @@ void HallSpeedCalib(unsigned int count){
     unsigned int i;
     int prev, update;
     float rps;
+    int deltas[500];
+    int sumdeltas =0;
+    int enc_counter=0;
 
     CRITICAL_SECTION_START
-            
-    // throw away first 400 data. Sometimes they are bad at the beginning.
-    for (i = 0; i < 100; ++i) {
+    // throw away first 100 data. Sometimes they are bad at the beginning.
+    for (i = 0; i < 300; ++i) {
         encGetPos();
-        delay_ms(2);
+        delay_ms(1);
     }
-
     for (i = 0; i < count; i++) {
         prev = (EncData.chr_data[0]<<6)+(EncData.chr_data[1]&0x3F);
         encGetPos();
         update = (EncData.chr_data[0]<<6)+(EncData.chr_data[1]&0x3F);
-        rps= (update-prev)/(16384*0.002); //(input:output gear = 1:5, 2^14(max angle pos) = 16384, 1/0.002(sec) = 500Hz)
-        EncSpeedData.float_data[0] = rps;
+
+        if(update-prev<0){
+        deltas[i % 500] = 16384-(prev-update);
+        }
+
+        else{
+        deltas[i % 500] = update-prev;
+        }
+
         delay_ms(2);
+        }
+
+    for(i=0; i<count; i++){
+                sumdeltas += deltas[i]; //500Hz, 500samples/1sec
+            }
+        rps= sumdeltas/(16384*5.0);
+        EncSpeedData.float_data[0] = rps;
+        sumdeltas= 0;
          // Sample at around 500Hz
-    }
     CRITICAL_SECTION_END
 }
 
