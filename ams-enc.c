@@ -97,7 +97,7 @@ unsigned char* encGetPos(void) {
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
     i2cReadString(ENC_I2C_CHAN,2,enc_data,DATA_WAIT);
     i2cEndTx(ENC_I2C_CHAN);
-    EncData.int_data =(enc_data[1]<<6)+(enc_data[0]&0x3F);
+    EncData.int_data[0]=(enc_data[1]<<6)+(enc_data[0]&0x3F);
 
     return EncData.chr_data;
 }
@@ -122,11 +122,10 @@ void HallSpeedCalib(unsigned int count){
         delay_ms(1);
     }
     for (i = 0; i < count; i++) {
-        prev = (EncData.chr_data[0]<<6)+(EncData.chr_data[1]&0x3F);
+        prev = EncData.int_data[0];
         delay_ms(2);
         encGetPos();
-        update = (EncData.chr_data[0]<<6)+(EncData.chr_data[1]&0x3F);
-
+        update = EncData.int_data[0];
         if(update-prev<0){
         deltas[i % 500] = 16384-(prev-update);
         }
