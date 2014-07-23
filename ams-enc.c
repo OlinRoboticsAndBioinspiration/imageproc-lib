@@ -97,8 +97,7 @@ unsigned char* encGetPos(void) {
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
     i2cReadString(ENC_I2C_CHAN,2,enc_data,DATA_WAIT);
     i2cEndTx(ENC_I2C_CHAN);
-    EncData.chr_data[0] = enc_data[1];
-    EncData.chr_data[1] = enc_data[0]; //+2 needed or not?
+    EncData.int_data =(enc_data[1]<<6)+(enc_data[0]&0x3F);
 
     return EncData.chr_data;
 }
@@ -117,13 +116,14 @@ void HallSpeedCalib(unsigned int count){
     int enc_counter=0;
 
     CRITICAL_SECTION_START
-    // throw away first 100 data. Sometimes they are bad at the beginning.
+    // throw away first 300 data. Sometimes they are bad at the beginning.
     for (i = 0; i < 300; ++i) {
         encGetPos();
         delay_ms(1);
     }
     for (i = 0; i < count; i++) {
         prev = (EncData.chr_data[0]<<6)+(EncData.chr_data[1]&0x3F);
+        delay_ms(2);
         encGetPos();
         update = (EncData.chr_data[0]<<6)+(EncData.chr_data[1]&0x3F);
 
@@ -135,12 +135,12 @@ void HallSpeedCalib(unsigned int count){
         deltas[i % 500] = update-prev;
         }
 
-        delay_ms(2);
         }
 
     for(i=0; i<count; i++){
-                sumdeltas += deltas[i]; //500Hz, 500samples/1sec
-            }
+        sumdeltas += deltas[i]; //500Hz, 500samples/1sec
+    }
+        
         rps= sumdeltas/(16384*5.0);
         EncSpeedData.float_data[0] = rps;
         sumdeltas= 0;
