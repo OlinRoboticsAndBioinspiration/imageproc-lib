@@ -45,6 +45,7 @@
 #include "ams-enc.h"
 #include "utils.h"
 #include "string.h"
+#include "cmd.h"
  
 #define LSB2ENCDEG 0.0219
 
@@ -53,18 +54,9 @@
 #define HALL_ADDR_WR             0x80    // 0x40 <<1	
 #define DATA_WAIT                50 //in ms 0.005
 
-static union encdata {
-    unsigned char chr_data[2];
-    int int_data[1];
-    //float float_data[1];
-} EncData;
-
-static union encspeeddata {
-    unsigned char chr_data[4];
-    float float_data[1];
-}EncSpeedData;
+static uByte2 enc_pos;
+static uByte4 enc_speed;
 	
-
 /*-----------------------------------------------------------------------------
  *          Declaration of static functions
 -----------------------------------------------------------------------------*/
@@ -84,8 +76,8 @@ void encSetup(void) {
  * Parameters    : None
  * Return Value  : None
  *****************************************************************************/
-unsigned char* encGetPos(void) {
-
+unsigned int encGetPos(void) {
+  
     unsigned char enc_data[2];
 
     i2cStartTx(ENC_I2C_CHAN); //Setup to burst read both registers, 0xFE and 0xFF
@@ -97,13 +89,13 @@ unsigned char* encGetPos(void) {
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
     i2cReadString(ENC_I2C_CHAN,2,enc_data,DATA_WAIT);
     i2cEndTx(ENC_I2C_CHAN);
-    EncData.int_data[0]=(enc_data[1]<<6)+(enc_data[0]&0x3F);
+    enc_pos.sval=(enc_data[1]<<6)+(enc_data[0]&0x3F);
 
-    return EncData.chr_data;
+    return enc_pos.sval;
 }
 
 unsigned char* HallGetSpeed(void) {
-    return EncSpeedData.chr_data;
+    return enc_speed.cval;
 }
 
 void HallSpeedCalib(unsigned int count){
@@ -122,27 +114,26 @@ void HallSpeedCalib(unsigned int count){
         delay_ms(1);
     }
     for (i = 0; i < count; i++) {
-        prev = EncData.int_data[0];
+        prev = enc_pos.sval;
         delay_ms(2);
         encGetPos();
-        update = EncData.int_data[0];
+        update = enc_pos.sval;
+
         if(update-prev<0){
         deltas[i % 500] = 16384-(prev-update);
         }
-
         else{
         deltas[i % 500] = update-prev;
         }
-
-        }
+    }
 
     for(i=0; i<count; i++){
         sumdeltas += deltas[i]; //500Hz, 500samples/1sec
     }
         
-        rps= sumdeltas/(16384*5.0);
-        EncSpeedData.float_data[0] = rps;
-        sumdeltas= 0;
+    rps = sumdeltas/(16384*5.0);
+    enc_speed.fval = rps;
+    sumdeltas = 0;
          // Sample at around 500Hz
     CRITICAL_SECTION_END
 }
@@ -186,7 +177,7 @@ void encStorePos(void){
     i2cSendByte(ENC_I2C_CHAN, HALL_ADDR_RD);		//Read address
     i2cReadString(ENC_I2C_CHAN,2,enc_data,10000);
     i2cEndTx(ENC_I2C_CHAN);
-    EncData.int_data[0] = ((enc_data[1]<<6)+(enc_data[0] & 0x3F));
+    enc_pos.sval = (enc_data[1]<<6)+(enc_data[0] & 0x3F);
 }
 /***********************************************************************
  * Function Name : encGetFloatPos
@@ -198,7 +189,7 @@ float encGetFloatPos(void) {
 
     float pos;
     encStorePos();
-    pos = EncData.int_data[0]*LSB2ENCDEG; //calculate Float
+    pos = enc_pos.sval*LSB2ENCDEG; //calculate Float
 
     return pos;
 }

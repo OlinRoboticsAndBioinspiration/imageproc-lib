@@ -76,7 +76,7 @@ void HallSpeedCalib(unsigned int count);
 * Parameters    : None
 * Return Value  : pointer to the array
 *****************************************************************************/
-unsigned char *encGetPos(void);
+unsigned int encGetPos(void);
 
 /*****************************************************************************
  * Function Name : encSumPos
