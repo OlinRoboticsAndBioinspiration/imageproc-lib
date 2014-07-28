@@ -92,6 +92,7 @@ unsigned int encGetPos(void) {
     enc_pos.sval=(enc_data[1]<<6)+(enc_data[0]&0x3F);
 
     return enc_pos.sval;
+
 }
 
 unsigned char* HallGetSpeed(void) {
